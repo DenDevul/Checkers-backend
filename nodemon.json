@@ -1,0 +1,8 @@
+{
+  "watch": [
+    "."
+  ],
+  "exec": "node --experimental-specifier-resolution=node --loader ts-node/esm ./index.ts",
+  "ext": "ts, json",
+  "delay": 1000
+}
