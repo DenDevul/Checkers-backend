@@ -1,14 +1,13 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
+import './loadEnv.ts';
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import morgan from 'morgan';
+import cors from 'cors';
 
-import router from './routes';
-import setupIo from './websocket';
-import { connectDb, getDb } from './db';
+import router from './routes/index.ts';
+import setupIo from './websocket/index.ts';
+import { connectDb } from './db/index.ts';
+import { appLogger, logger } from './logger.ts';
 
 const app = express();
 const httpServer = createServer(app);
@@ -16,24 +15,21 @@ const io = new Server(httpServer, { cors: { origin: '*' } });
 
 const port = process.env.PORT;
 
-app.use(morgan('dev'));
+app.use(cors({ origin: '*' }));
+app.use(appLogger);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.use(router);
 
-setupIo(io);
+try {
+  await connectDb();
 
-const start = async () => {
-  try {
-    await connectDb();
+  setupIo(io);
 
-    httpServer.listen(port, () => {
-      console.log(`Server is working on http://localhost:${port}/`);
-    });
-  } catch (er) {
-    console.log(er);
-  }
-};
-
-start();
+  httpServer.listen(port, () => {
+    logger.info(`Server is working on http://localhost:${port}/`);
+  });
+} catch (er) {
+  logger.error(er);
+}
