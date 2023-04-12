@@ -1,4 +1,5 @@
 import { Db, MongoClient } from 'mongodb';
+import { logger } from '../logger.ts';
 
 const uri = process.env.CONNECTION_STRING || '';
 
@@ -7,18 +8,17 @@ const client = new MongoClient(uri);
 let _db: Db;
 
 async function connectDb() {
-  try {
-    await client.connect();
-    _db = client.db('checkers');
-
-    console.log('Connected to DB');
-  } catch (er) {
-    throw er
+  if (!_db) {
+    try {
+      await client.connect();
+      _db = client.db('checkers');
+      logger.info('Connected to DB');
+    } catch (er) {
+      logger.error('Error connecting to DB ', er)
+      throw er;
+    }
   }
-}
-
-function getDb() {
   return _db;
 }
 
-export { connectDb, getDb };
+export { connectDb };
