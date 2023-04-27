@@ -1,24 +1,11 @@
-import { Db, MongoClient } from 'mongodb';
-import { logger } from '../logger.ts';
+import PocketBase from 'pocketbase';
 
-const uri = process.env.CONNECTION_STRING || '';
+const pb = new PocketBase(process.env.CONNECTION_STRING);
 
-const client = new MongoClient(uri);
+const email = process.env.EMAIL,
+  password = process.env.PASSWORD;
+if (!email || !password) throw new Error('Auth for pocket base not provided!');
 
-let _db: Db;
+const authData = await pb.admins.authWithPassword(email, password);
 
-async function connectDb() {
-  if (!_db) {
-    try {
-      await client.connect();
-      _db = client.db('checkers');
-      logger.info('Connected to DB');
-    } catch (er) {
-      logger.error('Error connecting to DB ', er)
-      throw er;
-    }
-  }
-  return _db;
-}
-
-export { connectDb };
+export default pb;

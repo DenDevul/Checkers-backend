@@ -1,16 +1,20 @@
-import { connectDb } from '../db/index.ts';
+import pb from '../db/index.ts';
+import { Game, GameRecord } from '../db/model.ts';
 import { logger } from '../logger.ts';
 
-const db = await connectDb();
-const games = db.collection('games');
+const games = pb.collection('games');
 
-async function insertGame(auth: any) {
-  const [userId, gameUrl, side]: string[] = [
-    auth.userId,
-    auth.gameUrl,
-    auth.createGame.side
-  ];
-  const createdGame = {
+async function createGame(requisites: {
+  userId: string;
+  gameUrl: string;
+  fen: string;
+  side: string;
+}) {
+  const { userId, gameUrl, fen, side } = requisites;
+  const game: Game = {
+    fen: fen,
+    url: gameUrl,
+    result: '*',
     player1: {
       id: userId,
       side: side
@@ -18,36 +22,49 @@ async function insertGame(auth: any) {
     player2: {
       id: null,
       side: side === 'white' ? 'black' : 'white'
-    },
-    gameUrl: gameUrl,
-    createdAt: new Date()
+    }
   };
   try {
-    await games.insertOne(createdGame);
-    logger.info('Document inserted');
+    logger.debug(game);
+    await games.create(game);
+    logger.info('Record created');
   } catch (e) {
     logger.error(e);
   }
 }
 
-async function updateGame(game: any, auth: any) {
-  const userId: string = auth.userId;
-  const updated = {
-    player2: {
-      id: userId
-    },
-    updatedAt: new Date()
-  };
+async function updateGame(
+  auth: { userId: string; gameUrl: string },
+  update?: { newFen?: string; result?: string }
+): Promise<GameRecord | undefined> {
+  const { userId, gameUrl } = auth;
+
   try {
-    await games.updateOne(game, { $set: updated });
-    logger.info('Document updated');
+    let game = await findGame(gameUrl);
+    if (!game) return;
+
+    if (!update) game.player2.id = userId;
+    else if (update.newFen) game.fen = update.newFen;
+    else if (update.result) game.result = update.result;
+
+    const updatedGame: GameRecord = await games.update(game.id, game, {
+      $autoCancel: false
+    });
+    logger.info('Record updated');
+    return updatedGame;
   } catch (e) {
     logger.error(e);
+    return;
   }
 }
 
-async function findGame(gameUrl: string) {
-  return await games.findOne({ gameUrl: gameUrl });
+async function findGame(gameUrl: string): Promise<GameRecord | undefined> {
+  try {
+    return await games.getFirstListItem<GameRecord>(`url = "${gameUrl}"`);
+  } catch (e) {
+    logger.error(e);
+    return;
+  }
 }
 
-export { insertGame, updateGame, findGame };
+export { createGame, updateGame, findGame };

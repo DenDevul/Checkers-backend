@@ -6,7 +6,6 @@ import cors from 'cors';
 
 import router from './routes/index.ts';
 import setupIo from './websocket/index.ts';
-import { connectDb } from './db/index.ts';
 import { appLogger, logger } from './logger.ts';
 
 const app = express();
@@ -22,14 +21,8 @@ app.use(express.urlencoded({ extended: false }));
 
 app.use(router);
 
-try {
-  await connectDb();
+setupIo(io);
 
-  setupIo(io);
-
-  httpServer.listen(port, () => {
-    logger.info(`Server is working on http://localhost:${port}/`);
-  });
-} catch (er) {
-  logger.error(er);
-}
+httpServer.listen(port, () => {
+  logger.info(`Server is working on http://localhost:${port}/`);
+});
