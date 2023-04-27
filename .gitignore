@@ -1,3 +1,7 @@
 node_modules
 
 .env
+
+db/pb_data
+
+logs/*.log
