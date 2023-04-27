@@ -5,10 +5,10 @@ import { createGame, updateGame, findGame } from './controller.ts';
 
 export default function setupIo(io: Server) {
   io.use((socket, next) => {
-    const { userId, gameUrl } = socket.handshake.auth;
-    if (!userId || !gameUrl) {
+    const { userId } = socket.handshake.auth;
+    if (!userId) {
       logger.debug('rejected by middleware');
-      const er = new Error('auth not provided');
+      const er = new Error('user id not provided');
       return next(er);
     }
     next();
@@ -16,28 +16,29 @@ export default function setupIo(io: Server) {
 
   io.on('connection', async (socket) => {
     const userId: string = socket.handshake.auth.userId;
-    const gameUrl: string = socket.handshake.auth.gameUrl;
 
     socket.onAny((ev) => {
       logger.debug(`event: ${ev}`);
     });
 
     logger.debug(userId + ' connected');
-    logger.debug(socket.handshake.auth);
 
     socket.on('disconnect', () => {
       logger.debug(userId + ' disconnected');
     });
 
-    socket.on('init game', (requisites: { fen: string; side: string }) => {
-      const requisitesWithAuth = { ...requisites, userId, gameUrl };
-      createGame(requisitesWithAuth);
+    socket.on(
+      'init game',
+      (data: { fen: string; side: string; gameUrl: string }) => {
+        const gameUrl = data.gameUrl;
+        createGame({ ...data, userId });
 
-      socket.join(gameUrl);
-      logger.debug(userId + ' joined room ' + gameUrl);
-    });
+        socket.join(gameUrl);
+        logger.debug(userId + ' joined room ' + gameUrl);
+      }
+    );
 
-    socket.on('request game', async (callback) => {
+    socket.on('request game', async (gameUrl: string, callback) => {
       logger.debug(userId + ' requesting game');
       const game = await findGame(gameUrl);
       if (!game) {
@@ -48,7 +49,6 @@ export default function setupIo(io: Server) {
       if (!game.player2.id && game.player1.id !== userId) {
         updateGame({ userId, gameUrl });
       } else if (game.player1.id !== userId && game.player2.id !== userId) {
-        logger.debug('here?');
         socket.disconnect(true);
         return;
       }
@@ -67,8 +67,8 @@ export default function setupIo(io: Server) {
       });
     });
 
-    socket.on('next move', async (newFen: string) => {
-      const game = await updateGame({ userId, gameUrl }, { newFen });
+    socket.on('next move', async (gameUrl: string, newFen: string) => {
+      const game = await updateGame({ gameUrl, newFen });
       if (!game) {
         io.to(socket.id).emit('error', 'Server Error');
         return;
@@ -76,8 +76,8 @@ export default function setupIo(io: Server) {
       socket.to(gameUrl).emit('next move', newFen);
     });
 
-    socket.on('end game', async (result: string) => {
-      const game = await updateGame({ userId, gameUrl }, { result });
+    socket.on('end game', async (gameUrl: string, result: string) => {
+      const game = await updateGame({ gameUrl, result });
       if (!game) {
         io.to(socket.id).emit('error', 'Server Error');
         return;

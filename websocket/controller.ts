@@ -33,19 +33,21 @@ async function createGame(requisites: {
   }
 }
 
-async function updateGame(
-  auth: { userId: string; gameUrl: string },
-  update?: { newFen?: string; result?: string }
-): Promise<GameRecord | undefined> {
-  const { userId, gameUrl } = auth;
+async function updateGame(update: {
+  gameUrl: string;
+  userId?: string;
+  newFen?: string;
+  result?: string;
+}): Promise<GameRecord | undefined> {
+  const { gameUrl, userId, newFen, result } = update;
 
   try {
     let game = await findGame(gameUrl);
     if (!game) return;
 
-    if (!update) game.player2.id = userId;
-    else if (update.newFen) game.fen = update.newFen;
-    else if (update.result) game.result = update.result;
+    if (userId) game.player2.id = userId;
+    else if (newFen) game.fen = newFen;
+    else if (result) game.result = result;
 
     const updatedGame: GameRecord = await games.update(game.id, game, {
       $autoCancel: false
