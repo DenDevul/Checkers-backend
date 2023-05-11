@@ -84,5 +84,9 @@ export default function setupIo(io: Server) {
       }
       socket.to(gameUrl).emit('end game', result);
     });
+
+    socket.on('offer draw', (gameUrl) => {
+      socket.to(gameUrl).emit('offer draw');
+    });
   });
 }
