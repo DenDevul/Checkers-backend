@@ -2,7 +2,7 @@ node_modules
 
 .env
 
-db/pb_data
-db/*.exe
+pb/*
+!pb/*migrations
 
 logs/*.log

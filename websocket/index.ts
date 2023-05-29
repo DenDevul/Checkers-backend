@@ -33,6 +33,9 @@ export default function setupIo(io: Server) {
         const gameUrl = data.gameUrl;
         createGame({ ...data, userId });
 
+        socket.rooms.forEach((room) => {
+          if (room !== socket.id) socket.leave(room);
+        });
         socket.join(gameUrl);
         logger.debug(userId + ' joined room ' + gameUrl);
       }
