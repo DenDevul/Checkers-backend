@@ -13,7 +13,6 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, { cors: { origin: '*' } });
 
 const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
-const host = process.env.HOST;
 
 app.use(cors({ origin: '*' }));
 app.use(appLogger);
@@ -24,6 +23,6 @@ app.use(router);
 
 setupIo(io);
 
-httpServer.listen(port, host, () => {
-  logger.info(`Server is running on http://${host}:${port}`);
+httpServer.listen(port, () => {
+  logger.info(`Server is running on http://localhost:${port}`);
 });
