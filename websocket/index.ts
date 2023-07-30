@@ -29,9 +29,9 @@ export default function setupIo(io: Server) {
 
     socket.on(
       'init game',
-      (data: { fen: string; side: string; gameUrl: string }) => {
+      async (data: { fen: string; side: string; gameUrl: string }) => {
         const gameUrl = data.gameUrl;
-        createGame({ ...data, userId });
+        await createGame({ newGame: { ...data, userId } });
 
         socket.rooms.forEach((room) => {
           if (room !== socket.id) socket.leave(room);
@@ -90,6 +90,20 @@ export default function setupIo(io: Server) {
 
     socket.on('offer draw', (gameUrl) => {
       socket.to(gameUrl).emit('offer draw');
+    });
+
+    socket.on('request restart', (gameUrl) => {
+      socket.to(gameUrl).emit('request restart');
+    });
+
+    socket.on('restart game', async (gameUrl: string, fen: string) => {
+      const newGame = await createGame({ restart: { gameUrl, fen } });
+      const newGameUrl = newGame!.url;
+      io.to(gameUrl).emit('restart game', newGameUrl);
+      const sockets = await io.in(gameUrl).fetchSockets();
+      sockets.forEach((s) => {
+        s.leave(gameUrl);
+      });
     });
   });
 }

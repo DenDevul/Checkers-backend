@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid';
 import pb from '../db/index.ts';
 import { Game, GameRecord } from '../db/model.ts';
 import { logger } from '../logger.ts';
@@ -5,29 +6,46 @@ import { logger } from '../logger.ts';
 const games = pb.collection('games');
 
 async function createGame(requisites: {
-  userId: string;
-  gameUrl: string;
-  fen: string;
-  side: string;
-}) {
-  const { userId, gameUrl, fen, side } = requisites;
-  const game: Game = {
-    fen: fen,
-    url: gameUrl,
-    result: '*',
-    player1: {
-      id: userId,
-      side: side
-    },
-    player2: {
-      id: null,
-      side: side === 'white' ? 'black' : 'white'
-    }
+  newGame?: {
+    userId: string;
+    gameUrl: string;
+    fen: string;
+    side: string;
   };
+  restart?: { gameUrl: string; fen: string };
+}): Promise<GameRecord | undefined> {
+  let game!: Game;
+  if (requisites.newGame) {
+    const { userId, gameUrl, fen, side } = requisites.newGame;
+    game = {
+      fen: fen,
+      url: gameUrl,
+      result: '*',
+      player1: {
+        id: userId,
+        side: side
+      },
+      player2: {
+        id: null,
+        side: side === 'white' ? 'black' : 'white'
+      }
+    };
+  } else if (requisites.restart) {
+    const { gameUrl, fen } = requisites.restart;
+    const oldGame = (await findGame(gameUrl))!;
+    game = {
+      fen: fen,
+      url: nanoid(12),
+      result: '*',
+      player1: oldGame.player1,
+      player2: oldGame.player2
+    };
+  }
   try {
     logger.debug(game);
-    await games.create(game);
+    const createdGame: GameRecord = await games.create(game);
     logger.info('Record created');
+    return createdGame;
   } catch (e) {
     logger.error(e);
   }
