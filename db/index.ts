@@ -6,6 +6,13 @@ const email = process.env.EMAIL,
   password = process.env.PASSWORD;
 if (!email || !password) throw new Error('Auth for pocket base not provided!');
 
-const authData = await pb.admins.authWithPassword(email, password);
+try {
+  const authData = await pb.admins.authWithPassword(email, password);
+} catch (error) {
+  console.error(error);
+  process.exit(1);
+}
+
+pb.autoCancellation(false);
 
 export default pb;

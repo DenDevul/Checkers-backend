@@ -67,9 +67,7 @@ async function updateGame(update: {
     else if (newFen) game.fen = newFen;
     else if (result) game.result = result;
 
-    const updatedGame: GameRecord = await games.update(game.id, game, {
-      $autoCancel: false
-    });
+    const updatedGame: GameRecord = await games.update(game.id, game);
     logger.info('Record updated');
     return updatedGame;
   } catch (e) {
