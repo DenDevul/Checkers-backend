@@ -4,5 +4,6 @@ node_modules
 
 pb/*
 !pb/*migrations
+!pb/Dockerfile
 
 logs/*.log
